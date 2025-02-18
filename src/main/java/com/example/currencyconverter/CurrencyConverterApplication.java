@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 
 @SpringBootApplication
-@EnableCaching // Включаем кэширование
+@EnableCaching
 public class CurrencyConverterApplication {
 
     public static void main(String[] args) {

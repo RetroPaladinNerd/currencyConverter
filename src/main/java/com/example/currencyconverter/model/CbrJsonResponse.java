@@ -2,9 +2,8 @@ package com.example.currencyconverter.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-
 import java.util.Map;
+import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,7 +16,7 @@ public class CbrJsonResponse {
     private String previousDate;
 
     @JsonProperty("PreviousURL")
-    private String previousURL;
+    private String previousUrl;
 
     @JsonProperty("Timestamp")
     private String timestamp;

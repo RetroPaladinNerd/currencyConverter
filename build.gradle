@@ -1,0 +1,71 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.5' // Или последняя стабильная версия
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17) // Или 11, 17 и т.д.
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation"
+}
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok:1.18.30' // Или последняя доступная версия
+    annotationProcessor 'org.projectlombok:lombok:1.18.30' // Или последняя доступная версия
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Spring Boot DevTools (для автоматической перезагрузки при изменении кода)
+    implementation 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Кэширование
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Checkstyle
+    implementation "com.puppycrawl.tools:checkstyle:10.21.2"
+
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf' // Для отображения данных в HTML
+    implementation 'org.springframework.boot:spring-boot-starter-validation' //Для валидации данных
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+    implementation 'org.springframework:spring-web' // Ensure spring-web is explicitly included.
+    implementation 'org.glassfish:jakarta.json:2.0.1' // Для работы с JSON (может пригодиться для других API)
+    implementation 'javax.xml.bind:jaxb-api:2.3.1' //Нужно добавить, чтобы заработал XML
+    implementation 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+task checkstyle(type: Checkstyle) {
+    group = "verification"
+    description = "Runs Checkstyle analysis."
+    configFile = file("config/checkstyle/checkstyle.xml")
+    source 'src/main/java'
+    include '**/*.java'
+    classpath = files()
+    ignoreFailures = false
+
+}
+

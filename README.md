@@ -13,10 +13,12 @@
 *   Lombok
 *   Gradle (для управления зависимостями и сборки проекта)
 
-##
+## Ответ JSON
+```json
 {
   "fromCurrency": "USD",
   "toCurrency": "RUB",
   "amount": 100.0,
   "convertedAmount": 9222.2200
 }
+```

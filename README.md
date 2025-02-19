@@ -29,4 +29,4 @@
 }
 ```
 ### SonarCloud
-[Sonar]([https://sonarcloud.io/project/overview?id=maks2134_Finance-tracker])
+([https://sonarcloud.io/project/overview?id=maks2134_Finance-tracker])

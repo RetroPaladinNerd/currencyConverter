@@ -7,7 +7,6 @@ import com.example.currencyconverter.service.CurrencyService;
 import com.example.currencyconverter.service.ExchangeRateService;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 
 @RestController
 @RequestMapping("/exchange-rates")
@@ -37,9 +35,11 @@ public class ExchangeRateController {
             @RequestParam BigDecimal rate
     ) {
         Currency fromCurrency = currencyService.getCurrencyByCode(fromCurrencyCode);
+        if (fromCurrency == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
         Currency toCurrency = currencyService.getCurrencyByCode(toCurrencyCode);
-
-        if (fromCurrency == null || toCurrency == null) {
+        if (toCurrency == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
@@ -61,7 +61,7 @@ public class ExchangeRateController {
         List<ExchangeRate> exchangeRates = exchangeRateService.getAllExchangeRates();
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
         return new ResponseEntity<>(exchangeRateDtos, HttpStatus.OK);
     }
 
@@ -71,8 +71,8 @@ public class ExchangeRateController {
             @RequestParam String fromCurrencyCode,
             @RequestParam String toCurrencyCode,
             @RequestParam BigDecimal newRate) {
-        ExchangeRate updatedExchangeRate = exchangeRateService
-                .updateExchangeRate(id, fromCurrencyCode, toCurrencyCode, newRate);
+        ExchangeRate updatedExchangeRate = exchangeRateService.updateExchangeRate(
+                        id, fromCurrencyCode, toCurrencyCode, newRate);
         if (updatedExchangeRate != null) {
             return new ResponseEntity<>(convertToDto(updatedExchangeRate), HttpStatus.OK);
         } else {

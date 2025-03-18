@@ -7,7 +7,6 @@ import com.example.currencyconverter.entity.ExchangeRate;
 import com.example.currencyconverter.service.BankService;
 import com.example.currencyconverter.service.ExchangeRateService;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 
 @RestController
 @RequestMapping("/banks")
@@ -48,7 +46,7 @@ public class BankController {
         List<Bank> banks = bankService.getAllBanks();
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
         return new ResponseEntity<>(bankDtos, HttpStatus.OK);
     }
 
@@ -80,7 +78,7 @@ public class BankController {
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .filter(exchangeRate -> exchangeRate.getBank().getId().equals(bank.getId()))
                 .map(this::convertToExchangeRateDto)
-                .collect(Collectors.toList());
+                .toList();
         bankDto.setExchangeRates(exchangeRateDtos);
         return bankDto;
     }

@@ -1,137 +1,82 @@
 package com.example.currencyconverter.service;
 
-import com.example.currencyconverter.config.CbrConfig;
-import com.example.currencyconverter.exception.CurrencyNotFoundException;
-import com.example.currencyconverter.exception.FetchExchangeRatesException;
+import com.example.currencyconverter.dto.ConversionResponseDto;
+import com.example.currencyconverter.entity.Currency;
 import com.example.currencyconverter.model.ConversionRequest;
-import com.example.currencyconverter.model.ConversionResponse;
-import com.example.currencyconverter.model.ExchangeRateResponse;
-import java.io.ByteArrayInputStream;
+import com.example.currencyconverter.repository.CurrencyRepository;
+import com.example.currencyconverter.repository.ExchangeRateRepository;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 @Service
+@RequiredArgsConstructor
 public class CurrencyService {
+    private final CurrencyRepository currencyRepository;
+    private final ExchangeRateService exchangeRateService;
+    private final ExchangeRateRepository exchangeRateRepository;
 
-    private static final Logger logger = LoggerFactory.getLogger(CurrencyService.class);
+    public ConversionResponseDto convertCurrency(ConversionRequest request) {
+        BigDecimal exchangeRateValue = exchangeRateService.getExchangeRateValue(
+                request.getBankId(),
+                request.getFromCurrencyCode(),
+                request.getToCurrencyCode()
+        );
 
-    private final CbrConfig cbrConfig;
-    private final RestTemplate restTemplate;
+        if (exchangeRateValue == null) {
+            throw new IllegalArgumentException(
+                    "Exchange rate not found for this bank and currency pair.");
+        }
 
-    public CurrencyService(CbrConfig cbrConfig) {
-        this.cbrConfig = cbrConfig;
-        this.restTemplate = new RestTemplate();
+        BigDecimal amount = request.getAmount();
+        BigDecimal convertedAmount = amount.multiply(exchangeRateValue);
+
+        ConversionResponseDto response = new ConversionResponseDto();
+        response.setFromCurrency(request.getFromCurrencyCode());
+        response.setToCurrency(request.getToCurrencyCode());
+        response.setAmount(amount);
+        response.setConvertedAmount(convertedAmount);
+        response.setExchangeRate(exchangeRateValue);
+
+        return response;
     }
 
-    @Cacheable("exchangeRates")
-    public Map<String, Double> getExchangeRates() {
-        String apiUrl = cbrConfig.getApiUrl();
-        logger.info("Fetching exchange rates from: {}", apiUrl);
-
-        String xmlData = restTemplate.getForObject(apiUrl, String.class);
-
-        if (xmlData != null) {
-            try {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
-                Document doc = builder
-                        .parse(new ByteArrayInputStream(xmlData.getBytes(StandardCharsets.UTF_8)));
-                doc.getDocumentElement().normalize();
-
-                NodeList valutes = doc.getElementsByTagName("Valute");
-                Map<String, Double> exchangeRates = new HashMap<>();
-                exchangeRates.put("RUB", 1.0);
-
-                for (int i = 0; i < valutes.getLength(); i++) {
-                    Element valuteElement = (Element) valutes.item(i);
-                    String charCode = valuteElement
-                            .getElementsByTagName("CharCode").item(0).getTextContent();
-                    double value = Double.parseDouble(valuteElement.getElementsByTagName("Value")
-                            .item(0).getTextContent().replace(",", "."));
-                    int nominal = Integer.parseInt(valuteElement.getElementsByTagName("Nominal")
-                            .item(0).getTextContent());
-
-                    exchangeRates.put(charCode, value / nominal);
-                }
-
-                return exchangeRates;
-
-            } catch (Exception e) {
-                logger.error("Error parsing XML: ", e);
-                return null;
-            }
-        } else {
-            logger.warn("Failed to fetch data from CBR API");
-            return null;
-        }
+    public Currency getCurrencyByCode(String code) {
+        return currencyRepository.findByCode(code);
     }
 
-    public ExchangeRateResponse getExchangeRate(String fromCurrency, String toCurrency) {
-        Map<String, Double> exchangeRates = getExchangeRates();
-
-        if (exchangeRates == null) {
-            throw new FetchExchangeRatesException(
-                    "Failed to fetch data from CBR API: Response is null");
-        }
-
-        if (!exchangeRates.containsKey(fromCurrency) || !exchangeRates.containsKey(toCurrency)) {
-            throw new CurrencyNotFoundException("Invalid currency code");
-        }
-
-        double fromRate = exchangeRates.get(fromCurrency);
-        double toRate = exchangeRates.get(toCurrency);
-
-        logger.debug("fromCurrency: {}, toCurrency: {}", fromCurrency, toCurrency);
-        logger.debug("fromRate: {}, toRate: {}", fromRate, toRate);
-
-        // Проверяем, что валюты не равны
-        if (fromCurrency.equals(toCurrency)) {
-            return ExchangeRateResponse.builder()
-                    .fromCurrency(fromCurrency)
-                    .toCurrency(toCurrency)
-                    .exchangeRate(1.0)
-                    .build();
-        }
-
-
-        double exchangeRate = fromRate / toRate;
-        logger.debug("exchangeRate: {}", exchangeRate);
-
-
-        return ExchangeRateResponse.builder()
-                .fromCurrency(fromCurrency)
-                .toCurrency(toCurrency)
-                .exchangeRate(exchangeRate)
-                .build();
+    public Currency createCurrency(String code, String name) {
+        Currency currency = new Currency();
+        currency.setCode(code);
+        currency.setName(name);
+        return currencyRepository.save(currency);
     }
 
-    public ConversionResponse convertCurrency(ConversionRequest request) {
-        ExchangeRateResponse exchangeRateResponse = getExchangeRate(request.getFromCurrency(),
-                request.getToCurrency());
-        double convertedAmount = request.getAmount() * exchangeRateResponse.getExchangeRate();
+    public Optional<Currency> getCurrency(Long id) {
+        return currencyRepository.findById(id);
+    }
 
+    public List<Currency> getAllCurrencies() {
+        return currencyRepository.findAll();
+    }
 
-        BigDecimal bd = BigDecimal.valueOf(convertedAmount).setScale(3, RoundingMode.HALF_UP);
-        convertedAmount = bd.doubleValue();
+    public Currency updateCurrency(Long id, String newCode, String newName) {
+        return currencyRepository.findById(id)
+                .map(currency -> {
+                    currency.setCode(newCode);
+                    currency.setName(newName);
+                    return currencyRepository.save(currency);
+                })
+                .orElse(null);
+    }
 
-        return ConversionResponse.builder()
-                .fromCurrency(request.getFromCurrency())
-                .toCurrency(request.getToCurrency())
-                .amount(request.getAmount())
-                .convertedAmount(convertedAmount)
-                .build();
+    public boolean deleteCurrency(Long id) {
+        if (currencyRepository.existsById(id)) {
+            currencyRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }

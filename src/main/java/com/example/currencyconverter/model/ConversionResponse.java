@@ -1,12 +1,11 @@
 package com.example.currencyconverter.model;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@Builder
+@AllArgsConstructor
 public class ConversionResponse {
-
     private String fromCurrency;
     private String toCurrency;
     private double amount;

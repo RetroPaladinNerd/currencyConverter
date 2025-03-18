@@ -1,15 +1,12 @@
 package com.example.currencyconverter.model;
 
-import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ConversionRequest {
-
-    private String fromCurrency;
-    private String toCurrency;
-    private double amount;
+    private Long bankId;
+    private String fromCurrencyCode;
+    private String toCurrencyCode;
+    private BigDecimal amount;
 }

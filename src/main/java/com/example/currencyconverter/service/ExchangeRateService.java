@@ -6,13 +6,17 @@ import com.example.currencyconverter.entity.ExchangeRate;
 import com.example.currencyconverter.repository.BankRepository;
 import com.example.currencyconverter.repository.CurrencyRepository;
 import com.example.currencyconverter.repository.ExchangeRateRepository;
+import com.example.currencyconverter.utils.InMemoryCache;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +25,16 @@ public class ExchangeRateService {
     private final ExchangeRateRepository exchangeRateRepository;
     private final BankRepository bankRepository;
     private final CurrencyRepository currencyRepository;
+    private final InMemoryCache<String, Object> exchangeRateCache;
+
+    @Value("${cache.enabled:true}") // Default to true if not set
+    private boolean cacheEnabled;
+
+    private static final Logger logger = LoggerFactory.getLogger(ExchangeRateService.class);
+
+    private String getCacheKey(Long bankId, String fromCurrencyCode, String toCurrencyCode) {
+        return bankId + "-" + fromCurrencyCode + "-" + toCurrencyCode;
+    }
 
     @Transactional
     public ExchangeRate createExchangeRate(
@@ -33,10 +47,16 @@ public class ExchangeRateService {
                 .fromCurrencyCode(fromCurrency.getCode())
                 .toCurrencyCode(toCurrency.getCode())
                 .rate(rate)
-                .currencies(Set.of(fromCurrency, toCurrency))
                 .build();
 
-        return exchangeRateRepository.save(exchangeRate);
+        ExchangeRate savedExchangeRate = exchangeRateRepository.save(exchangeRate);
+
+        // Invalidate cache
+        if (cacheEnabled) {
+            invalidateCache(bankId, fromCurrency.getCode(), toCurrency.getCode());
+        }
+
+        return savedExchangeRate;
     }
 
     public List<ExchangeRate> getAllExchangeRates() {
@@ -62,14 +82,29 @@ public class ExchangeRateService {
                     exchangeRate.setFromCurrencyCode(fromCurrencyCode);
                     exchangeRate.setToCurrencyCode(toCurrencyCode);
                     exchangeRate.setRate(newRate);
-                    return exchangeRateRepository.save(exchangeRate);
+                    ExchangeRate updatedRate = exchangeRateRepository.save(exchangeRate);
+
+                    // Invalidate cache
+                    if (cacheEnabled) {
+                        invalidateCache(exchangeRate.getBank().getId(), fromCurrencyCode, toCurrencyCode);
+                    }
+
+
+                    return updatedRate;
                 })
                 .orElse(null);
     }
 
     public boolean deleteExchangeRate(Long id) {
         if (exchangeRateRepository.existsById(id)) {
+            ExchangeRate exchangeRate = exchangeRateRepository.findById(id).get(); // Get the entity before deleting
             exchangeRateRepository.deleteById(id);
+
+            // Invalidate cache
+            if (cacheEnabled) {
+                invalidateCache(exchangeRate.getBank().getId(), exchangeRate.getFromCurrencyCode(), exchangeRate.getToCurrencyCode());
+            }
+
             return true;
         }
         return false;
@@ -77,13 +112,48 @@ public class ExchangeRateService {
 
     public BigDecimal getExchangeRateValue(
             Long bankId, String fromCurrencyCode, String toCurrencyCode) {
+
+        String cacheKey = getCacheKey(bankId, fromCurrencyCode, toCurrencyCode);
+
+        // Check cache first
+        if (cacheEnabled && exchangeRateCache.get(cacheKey) != null) {
+
+            return (BigDecimal) exchangeRateCache.get(cacheKey);
+        }
+
+
         Optional<ExchangeRate> exchangeRate = exchangeRateRepository
                 .findByBankIdAndFromCurrencyCodeAndToCurrencyCode(
                         bankId, fromCurrencyCode, toCurrencyCode);
+
         if (exchangeRate.isEmpty()) {
             return null;
         }
 
-        return exchangeRate.get().getRate();
+        BigDecimal rate = exchangeRate.get().getRate();
+
+        // Put in cache
+        if (cacheEnabled) {
+            exchangeRateCache.put(cacheKey, rate);
+
+        }
+
+        return rate;
+    }
+
+    // Helper method to invalidate cache
+    private void invalidateCache(Long bankId, String fromCurrencyCode, String toCurrencyCode) {
+        if (cacheEnabled) {
+            String cacheKey = getCacheKey(bankId, fromCurrencyCode, toCurrencyCode);
+
+        }
+    }
+
+    public ExchangeRate getMinRate(String fromCurrencyCode, String toCurrencyCode) {
+        List<ExchangeRate> exchangeRate = exchangeRateRepository.findMinRate(fromCurrencyCode, toCurrencyCode);
+        if (exchangeRate.isEmpty()) {
+            return null;
+        }
+        return exchangeRate.get(0);
     }
 }

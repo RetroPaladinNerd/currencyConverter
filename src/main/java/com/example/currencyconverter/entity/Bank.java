@@ -33,5 +33,6 @@ public class Bank {
     private String name;
 
     @OneToMany(mappedBy = "bank", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private Set<ExchangeRate> exchangeRates = new HashSet<>();
 }

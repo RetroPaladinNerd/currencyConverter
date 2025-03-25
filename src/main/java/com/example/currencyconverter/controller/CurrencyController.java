@@ -1,5 +1,6 @@
 package com.example.currencyconverter.controller;
 
+import com.example.currencyconverter.config.CacheConfig;
 import com.example.currencyconverter.dto.ConversionResponseDto;
 import com.example.currencyconverter.dto.ExchangeRateDto;
 import com.example.currencyconverter.entity.Currency;
@@ -7,6 +8,7 @@ import com.example.currencyconverter.entity.ExchangeRate;
 import com.example.currencyconverter.model.ConversionRequest;
 import com.example.currencyconverter.service.CurrencyService;
 import com.example.currencyconverter.service.ExchangeRateService;
+import com.example.currencyconverter.utils.InMemoryCache;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,25 +32,45 @@ public class CurrencyController {
 
     private final CurrencyService currencyService;
     private final ExchangeRateService exchangeRateService;
+    private final CacheConfig cacheConfig;
+    private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
     public ResponseEntity<Currency> createCurrency(@RequestParam String code,
                                                    @RequestParam String name) {
         Currency newCurrency = currencyService.createCurrency(code, name);
+        controllerCache.clear();
         return new ResponseEntity<>(newCurrency, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Currency> getCurrency(@PathVariable Long id) {
+        String cacheKey = "/currencies/" + id;
+        ResponseEntity<Currency> cachedResponse = (ResponseEntity<Currency>) controllerCache.get(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
+
         return currencyService.getCurrency(id)
-                .map(currency -> new ResponseEntity<>(currency, HttpStatus.OK))
+                .map(currency -> {
+                    ResponseEntity<Currency> response = new ResponseEntity<>(currency, HttpStatus.OK);
+                    controllerCache.put(cacheKey, response);
+                    return response;
+                })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @GetMapping
     public ResponseEntity<List<Currency>> getAllCurrencies() {
+        String cacheKey = "/currencies";
+        ResponseEntity<List<Currency>> cachedResponse = (ResponseEntity<List<Currency>>) controllerCache.get(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
         List<Currency> currencies = currencyService.getAllCurrencies();
-        return new ResponseEntity<>(currencies, HttpStatus.OK);
+        ResponseEntity<List<Currency>> response = new ResponseEntity<>(currencies, HttpStatus.OK);
+        controllerCache.put(cacheKey, response);
+        return response;
     }
 
     @PutMapping("/{id}")
@@ -56,16 +78,14 @@ public class CurrencyController {
                                                    @RequestParam String newCode,
                                                    @RequestParam String newName) {
         Currency updatedCurrency = currencyService.updateCurrency(id, newCode, newName);
-        if (updatedCurrency != null) {
-            return new ResponseEntity<>(updatedCurrency, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        controllerCache.clear();
+        return new ResponseEntity<>(updatedCurrency, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCurrency(@PathVariable Long id) {
         boolean deleted = currencyService.deleteCurrency(id);
+        controllerCache.clear();
         if (deleted) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
@@ -73,28 +93,18 @@ public class CurrencyController {
         }
     }
 
-
     @PostMapping("/convert")
     public ResponseEntity<ConversionResponseDto> convertCurrency(
             @RequestParam(required = false) Long bankId,
             @RequestParam(required = false) String fromCurrencyCode,
-            @RequestParam(required = false) String toCurrencyCode,
             @RequestParam(required = false) BigDecimal amount,
-            @RequestBody(required = false) ConversionRequest request
+            @RequestBody ConversionRequest request
     ) {
         try {
-            ConversionRequest conversionRequest =
-                    request != null ? request : new ConversionRequest();
-            if (request == null) {
-                conversionRequest.setBankId(bankId);
-                conversionRequest.setFromCurrencyCode(fromCurrencyCode);
-                conversionRequest.setToCurrencyCode(toCurrencyCode);
-                conversionRequest.setAmount(amount);
-            }
-            ConversionResponseDto response = currencyService.convertCurrency(conversionRequest);
+            ConversionResponseDto response = currencyService.convertCurrency(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (UnsupportedOperationException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED); // или другой код ошибки
+            return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -109,11 +119,11 @@ public class CurrencyController {
     ) {
         Currency fromCurrency = currencyService.getCurrencyByCode(fromCurrencyCode);
         if (fromCurrency == null) {
-            return  new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         Currency toCurrency = currencyService.getCurrencyByCode(toCurrencyCode);
         if (toCurrency == null) {
-            return  new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
         ExchangeRate newExchangeRate =

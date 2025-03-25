@@ -1,12 +1,15 @@
 package com.example.currencyconverter.controller;
 
+import com.example.currencyconverter.config.CacheConfig;
 import com.example.currencyconverter.dto.ExchangeRateDto;
 import com.example.currencyconverter.entity.Currency;
 import com.example.currencyconverter.entity.ExchangeRate;
 import com.example.currencyconverter.service.CurrencyService;
 import com.example.currencyconverter.service.ExchangeRateService;
+import com.example.currencyconverter.utils.InMemoryCache;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,8 @@ public class ExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
     private final CurrencyService currencyService;
+    private final CacheConfig cacheConfig;
+    private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
     public ResponseEntity<ExchangeRateDto> createExchangeRate(
@@ -45,49 +50,90 @@ public class ExchangeRateController {
 
         ExchangeRate newExchangeRate =
                 exchangeRateService.createExchangeRate(bankId, fromCurrency, toCurrency, rate);
+        controllerCache.clear();
         return new ResponseEntity<>(convertToDto(newExchangeRate), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ExchangeRateDto> getExchangeRate(@PathVariable Long id) {
+        String cacheKey = "/exchange-rates/" + id;
+        ResponseEntity<ExchangeRateDto> cachedResponse = (ResponseEntity<ExchangeRateDto>) controllerCache.get(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
+
         return exchangeRateService.getExchangeRate(id)
                 .map(this::convertToDto)
-                .map(exchangeRateDto -> new ResponseEntity<>(exchangeRateDto, HttpStatus.OK))
+                .map(exchangeRateDto -> {
+                    ResponseEntity<ExchangeRateDto> response = new ResponseEntity<>(exchangeRateDto, HttpStatus.OK);
+                    controllerCache.put(cacheKey, response);
+                    return response;
+                })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @GetMapping
     public ResponseEntity<List<ExchangeRateDto>> getAllExchangeRates() {
+        String cacheKey = "/exchange-rates";
+        ResponseEntity<List<ExchangeRateDto>> cachedResponse = (ResponseEntity<List<ExchangeRateDto>>) controllerCache.get(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
         List<ExchangeRate> exchangeRates = exchangeRateService.getAllExchangeRates();
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .map(this::convertToDto)
-                .toList();
-        return new ResponseEntity<>(exchangeRateDtos, HttpStatus.OK);
+                .collect(Collectors.toList());
+        ResponseEntity<List<ExchangeRateDto>> response = new ResponseEntity<>(exchangeRateDtos, HttpStatus.OK);
+        controllerCache.put(cacheKey, response);
+        return response;
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ExchangeRateDto> updateExchangeRate(
             @PathVariable Long id,
             @RequestParam String fromCurrencyCode,
-            @RequestParam String toCurrencyCode,
             @RequestParam BigDecimal newRate) {
         ExchangeRate updatedExchangeRate = exchangeRateService.updateExchangeRate(
-                        id, fromCurrencyCode, toCurrencyCode, newRate);
-        if (updatedExchangeRate != null) {
-            return new ResponseEntity<>(convertToDto(updatedExchangeRate), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+                id, fromCurrencyCode, fromCurrencyCode, newRate);
+        controllerCache.clear();
+        return new ResponseEntity<>(convertToDto(updatedExchangeRate), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteExchangeRate(@PathVariable Long id) {
         boolean deleted = exchangeRateService.deleteExchangeRate(id);
+        controllerCache.clear();
         if (deleted) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+    }
+
+    @GetMapping("/min-rate")
+    public ResponseEntity<ExchangeRateDto> getMinRate(
+            @RequestParam String fromCurrencyCode,
+            @RequestParam String toCurrencyCode) {
+        String cacheKey = "/exchange-rates/min-rate?fromCurrencyCode=" + fromCurrencyCode + "&toCurrencyCode=" + toCurrencyCode;
+        ResponseEntity<ExchangeRateDto> cachedResponse = (ResponseEntity<ExchangeRateDto>) controllerCache.get(cacheKey);
+        if (cachedResponse != null) {
+            return cachedResponse;
+        }
+        ExchangeRate exchangeRate = exchangeRateService.getMinRate(fromCurrencyCode, toCurrencyCode);
+        if (exchangeRate != null) {
+            ExchangeRateDto dto = convertToDto(exchangeRate);
+            ResponseEntity<ExchangeRateDto> response = new ResponseEntity<>(dto, HttpStatus.OK);
+            controllerCache.put(cacheKey, response);
+            return response;
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @GetMapping("/cache/size")
+    public ResponseEntity<Double> getCacheSizeInKB() {
+        double cacheSizeKB = cacheConfig.getCacheSizeInKB();
+        return new ResponseEntity<>(cacheSizeKB, HttpStatus.OK);
     }
 
     private ExchangeRateDto convertToDto(ExchangeRate exchangeRate) {

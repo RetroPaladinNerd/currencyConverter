@@ -49,10 +49,7 @@ public class ExchangeRateService {
                 .rate(rate)
                 .build();
 
-        ExchangeRate savedExchangeRate = exchangeRateRepository.save(exchangeRate);
-
-
-        return savedExchangeRate;
+        return exchangeRateRepository.save(exchangeRate);
     }
 
     public List<ExchangeRate> getAllExchangeRates() {
@@ -78,10 +75,9 @@ public class ExchangeRateService {
                     exchangeRate.setFromCurrencyCode(fromCurrencyCode);
                     exchangeRate.setToCurrencyCode(toCurrencyCode);
                     exchangeRate.setRate(newRate);
-                    ExchangeRate updatedRate = exchangeRateRepository.save(exchangeRate);
 
+                    return exchangeRateRepository.save(exchangeRate);
 
-                    return updatedRate;
                 })
                 .orElse(null);
     }

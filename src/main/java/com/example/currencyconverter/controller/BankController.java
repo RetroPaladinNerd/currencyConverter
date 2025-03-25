@@ -11,8 +11,9 @@ import com.example.currencyconverter.service.ExchangeRateService;
 import com.example.currencyconverter.utils.InMemoryCache;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
+// Removed unused import: java.util.stream.Collectors; // No longer needed
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,6 +33,7 @@ public class BankController {
     private final BankService bankService;
     private final ExchangeRateService exchangeRateService;
     private final CacheConfig cacheConfig;
+    @Qualifier("bankCache") // Correct Qualifier
     private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
@@ -70,7 +72,7 @@ public class BankController {
         List<Bank> banks = bankService.getAllBanks();
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList(); // Changed from collect(Collectors.toList())
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
         return response;
@@ -88,7 +90,7 @@ public class BankController {
         List<Bank> banks = bankService.findBanksByCurrencyAndRateToBYN(currencyCode, rateToBYN);
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .toList();
+                .toList(); // Changed from collect(Collectors.toList())
 
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
@@ -105,7 +107,7 @@ public class BankController {
         List<Bank> banks = bankService.findBanksByNameLikeNative(name);
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList(); // Changed from collect(Collectors.toList())
 
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
@@ -138,7 +140,7 @@ public class BankController {
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .filter(exchangeRate -> exchangeRate.getBank().getId().equals(bank.getId()))
                 .map(this::convertToExchangeRateDto)
-                .toList();
+                .toList(); // Changed from collect(Collectors.toList())
         bankDto.setExchangeRates(exchangeRateDtos);
         return bankDto;
     }

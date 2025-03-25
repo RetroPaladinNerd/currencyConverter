@@ -51,7 +51,6 @@ public class ExchangeRateService {
 
         ExchangeRate savedExchangeRate = exchangeRateRepository.save(exchangeRate);
 
-        // Invalidate cache
         if (cacheEnabled) {
             invalidateCache(bankId, fromCurrency.getCode(), toCurrency.getCode());
         }
@@ -84,7 +83,6 @@ public class ExchangeRateService {
                     exchangeRate.setRate(newRate);
                     ExchangeRate updatedRate = exchangeRateRepository.save(exchangeRate);
 
-                    // Invalidate cache
                     if (cacheEnabled) {
                         invalidateCache(exchangeRate.getBank().getId(), fromCurrencyCode, toCurrencyCode);
                     }
@@ -100,7 +98,6 @@ public class ExchangeRateService {
             ExchangeRate exchangeRate = exchangeRateRepository.findById(id).get(); // Get the entity before deleting
             exchangeRateRepository.deleteById(id);
 
-            // Invalidate cache
             if (cacheEnabled) {
                 invalidateCache(exchangeRate.getBank().getId(), exchangeRate.getFromCurrencyCode(), exchangeRate.getToCurrencyCode());
             }
@@ -143,10 +140,7 @@ public class ExchangeRateService {
 
     // Helper method to invalidate cache
     private void invalidateCache(Long bankId, String fromCurrencyCode, String toCurrencyCode) {
-        if (cacheEnabled) {
-            String cacheKey = getCacheKey(bankId, fromCurrencyCode, toCurrencyCode);
 
-        }
     }
 
     public ExchangeRate getMinRate(String fromCurrencyCode, String toCurrencyCode) {

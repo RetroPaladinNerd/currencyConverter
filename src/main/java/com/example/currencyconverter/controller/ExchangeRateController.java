@@ -9,8 +9,9 @@ import com.example.currencyconverter.service.ExchangeRateService;
 import com.example.currencyconverter.utils.InMemoryCache;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
+// Removed unused import: java.util.stream.Collectors; // No longer needed
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,6 +31,7 @@ public class ExchangeRateController {
     private final ExchangeRateService exchangeRateService;
     private final CurrencyService currencyService;
     private final CacheConfig cacheConfig;
+    @Qualifier("exchangeRateCache") // Correct Qualifier
     private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
@@ -82,7 +84,7 @@ public class ExchangeRateController {
         List<ExchangeRate> exchangeRates = exchangeRateService.getAllExchangeRates();
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList(); // Changed from collect(Collectors.toList())
         ResponseEntity<List<ExchangeRateDto>> response = new ResponseEntity<>(exchangeRateDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
         return response;
@@ -92,9 +94,10 @@ public class ExchangeRateController {
     public ResponseEntity<ExchangeRateDto> updateExchangeRate(
             @PathVariable Long id,
             @RequestParam String fromCurrencyCode,
+            @RequestParam String toCurrencyCode, // Added missing parameter
             @RequestParam BigDecimal newRate) {
         ExchangeRate updatedExchangeRate = exchangeRateService.updateExchangeRate(
-                id, fromCurrencyCode, fromCurrencyCode, newRate);
+                id, fromCurrencyCode, toCurrencyCode, newRate); // Passed toCurrencyCode
         controllerCache.clear();
         return new ResponseEntity<>(convertToDto(updatedExchangeRate), HttpStatus.OK);
     }

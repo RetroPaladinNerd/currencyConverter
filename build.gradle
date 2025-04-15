@@ -1,7 +1,8 @@
 plugins {
     id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'io.spring.dependency-management' version '1.1.5'
     id 'java'
+    id 'jacoco'
 }
 
 group = "com.example"
@@ -15,32 +16,46 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.postgresql:postgresql")
-    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
-
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.postgresql:postgresql'  // Или ваша база данных
-    implementation 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    implementation 'com.fasterxml.jackson.core:jackson-databind' // Jackson
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
 }
 
-tasks.named('test') {
+jacoco {
+    toolVersion = "0.8.12" // Укажите желаемую версию JaCoCo (проверьте актуальную на Maven Central)
+}
+
+dependencies {
+    // ----- Основные Spring Boot Starters -----
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Используем runtimeOnly, т.к. драйвер нужен только во время выполнения
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // ----- Документация API -----
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0' // Версия совместима с Boot 3.2
+
+    // ----- Утилиты для разработки -----
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    implementation 'org.webjars:webjars-locator-core'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.withType(Test) {
     useJUnitPlatform()
+    jvmArgs(['-Xshare:off'])
+    finalizedBy jacocoTestReport
 }
 
 task checkstyle(type: Checkstyle) {
@@ -51,6 +66,15 @@ task checkstyle(type: Checkstyle) {
     include '**/*.java'
     classpath = files()
     ignoreFailures = false
-
 }
 
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test') // Убеждаемся, что тесты запускаются перед генерацией отчета
+    reports {
+        xml.required = false // XML отчет, часто нужен для CI/CD систем
+        csv.required = false // CSV отчет
+        html.required = true // HTML отчет, самый удобный для просмотра человеком
+        // Можно указать путь для отчета, по умолчанию: build/reports/jacoco/test
+        // html.destination file("${buildDir}/reports/jacocoHtml")
+    }
+}

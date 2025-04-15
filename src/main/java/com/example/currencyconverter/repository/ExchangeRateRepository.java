@@ -13,8 +13,9 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
 
     List<ExchangeRate> findByBankId(Long bankId);
 
-    @Query("SELECT er FROM ExchangeRate er "
-            + "WHERE (er.fromCurrencyCode = :fromCurrencyCode AND er.toCurrencyCode = :toCurrencyCode) "
-            + "ORDER BY er.rate ASC")
+    @Query(value = "SELECT * FROM exchange_rates "
+            + "WHERE from_currency_code = :fromCurrencyCode AND to_currency_code = :toCurrencyCode "
+            + "ORDER BY rate ASC LIMIT 1", nativeQuery = true)
     List<ExchangeRate> findMinRate(@Param("fromCurrencyCode") String fromCurrencyCode, @Param("toCurrencyCode") String toCurrencyCode);
+
 }

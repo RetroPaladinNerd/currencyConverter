@@ -1,25 +1,38 @@
 package com.example.currencyconverter.controller;
 
-import com.example.currencyconverter.config.CacheConfig;
 import com.example.currencyconverter.dto.ConversionResponseDto;
-import com.example.currencyconverter.dto.ExchangeRateDto;
+import com.example.currencyconverter.dto.ErrorResponseDto;
 import com.example.currencyconverter.entity.Currency;
-import com.example.currencyconverter.entity.ExchangeRate;
+import com.example.currencyconverter.exception.CurrencyNotFoundException;
 import com.example.currencyconverter.model.ConversionRequest;
 import com.example.currencyconverter.service.CurrencyService;
 import com.example.currencyconverter.service.ExchangeRateService;
 import com.example.currencyconverter.utils.InMemoryCache;
-import java.math.BigDecimal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody; // Обрати внимание на этот импорт
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,41 +41,69 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/currencies")
 @RequiredArgsConstructor
+@Validated
+@Tag(name = "Currency Operations", description = "Endpoints for managing currencies and performing conversions")
 public class CurrencyController {
 
     private final CurrencyService currencyService;
-    private final ExchangeRateService exchangeRateService;
-    private final CacheConfig cacheConfig;
+    // ExchangeRateService не используется напрямую в этом контроллере (кроме удаленного /exchangeRate)
+    // private final ExchangeRateService exchangeRateService;
+    //@Qualifier("currencyCache") // Убедись, что бин кэша с таким именем существует
     private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
-    public ResponseEntity<Currency> createCurrency(@RequestParam String code,
-                                                   @RequestParam String name) {
-        Currency newCurrency = currencyService.createCurrency(code, name);
-        controllerCache.clear();
+    @Operation(summary = "Create a new currency", description = "Creates a new currency. The 3-letter code must be unique.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Currency created successfully",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid input (validation error or code already exists)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
+    public ResponseEntity<Currency> createCurrency(
+            @Parameter(description = "Unique 3-letter currency code (ISO 4217)", required = true, example = "JPY")
+            @RequestParam @NotBlank @Size(min = 3, max = 3) String code,
+            @Parameter(description = "Full name of the currency", required = true, example = "Japanese Yen")
+            @RequestParam @NotBlank @Size(min = 2, max = 100) String name) {
+        Currency newCurrency = currencyService.createCurrency(code, name); // Сервис проверяет уникальность
+        controllerCache.clear(); // Очищаем кэш валют? Или только при обновлении/удалении?
         return new ResponseEntity<>(newCurrency, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Currency> getCurrency(@PathVariable Long id) {
+    @Operation(summary = "Get currency by ID", description = "Retrieves details of a specific currency by its unique ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Currency found",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @ApiResponse(responseCode = "404", description = "Currency not found",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
+    public ResponseEntity<Currency> getCurrency(
+            @Parameter(description = "ID of the currency to retrieve", required = true, example = "3")
+            @PathVariable @Positive Long id) {
         String cacheKey = "/currencies/" + id;
+        @SuppressWarnings("unchecked")
         ResponseEntity<Currency> cachedResponse = (ResponseEntity<Currency>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
             return cachedResponse;
         }
-
-        return currencyService.getCurrency(id)
-                .map(currency -> {
-                    ResponseEntity<Currency> response = new ResponseEntity<>(currency, HttpStatus.OK);
-                    controllerCache.put(cacheKey, response);
-                    return response;
-                })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        Currency currency = currencyService.getCurrency(id).orElseThrow(() -> new CurrencyNotFoundException("Currency not found with id: " + id));
+        ResponseEntity<Currency> response = new ResponseEntity<>(currency, HttpStatus.OK);
+        controllerCache.put(cacheKey, response);
+        return response;
     }
 
     @GetMapping
+    @Operation(summary = "Get all currencies", description = "Retrieves a list of all available currencies.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = Currency.class))))
+    })
     public ResponseEntity<List<Currency>> getAllCurrencies() {
         String cacheKey = "/currencies";
+        @SuppressWarnings("unchecked")
         ResponseEntity<List<Currency>> cachedResponse = (ResponseEntity<List<Currency>>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
             return cachedResponse;
@@ -74,69 +115,64 @@ public class CurrencyController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Currency> updateCurrency(@PathVariable Long id,
-                                                   @RequestParam String newCode,
-                                                   @RequestParam String newName) {
-        Currency updatedCurrency = currencyService.updateCurrency(id, newCode, newName);
-        controllerCache.clear();
+    @Operation(summary = "Update currency", description = "Updates the code and/or name of an existing currency. The new code must be unique.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Currency updated successfully",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid input (validation error or new code already exists)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @ApiResponse(responseCode = "404", description = "Currency not found",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
+    public ResponseEntity<Currency> updateCurrency(
+            @Parameter(description = "ID of the currency to update", required = true, example = "3")
+            @PathVariable @Positive Long id,
+            @Parameter(description = "New unique 3-letter currency code", required = true, example = "JPY")
+            @RequestParam @NotBlank @Size(min = 3, max = 3) String newCode,
+            @Parameter(description = "New full name for the currency", required = true, example = "Japanese Yen")
+            @RequestParam @NotBlank @Size(min = 2, max = 100) String newName) {
+        Currency updatedCurrency = currencyService.updateCurrency(id, newCode, newName); // Сервис проверяет уникальность
+        controllerCache.clear(); // Очищаем кэш валют
         return new ResponseEntity<>(updatedCurrency, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCurrency(@PathVariable Long id) {
-        boolean deleted = currencyService.deleteCurrency(id);
-        controllerCache.clear();
-        if (deleted) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+    @Operation(summary = "Delete currency", description = "Deletes a currency by its ID. Fails if the currency is used in existing exchange rates.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Currency deleted successfully", content = @Content),
+        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @ApiResponse(responseCode = "404", description = "Currency not found",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @ApiResponse(responseCode = "409", description = "Conflict - Currency is in use and cannot be deleted", // Пример описания конфликта
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
+    public ResponseEntity<Void> deleteCurrency(
+            @Parameter(description = "ID of the currency to delete", required = true, example = "3")
+            @PathVariable @Positive Long id) {
+        currencyService.deleteCurrency(id); // Сервис должен проверять использование и кидать исключение (например, 409 Conflict)
+        controllerCache.clear(); // Очищаем кэш валют
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/convert")
+    @Operation(summary = "Convert currency",
+            description = "Converts an amount from one currency to another using the exchange rate of a specific bank.")
+    // Описываем тело запроса с помощью @RequestBody аннотации Swagger'а
+    @RequestBody(description = "Details for the currency conversion: bank ID, from/to currency codes, and amount.", required = true,
+            content = @Content(schema = @Schema(implementation = ConversionRequest.class)))
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Conversion successful",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ConversionResponseDto.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid input (validation error in request body, or required exchange rate not found)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponseDto.class))),
+    })
     public ResponseEntity<ConversionResponseDto> convertCurrency(
-            @RequestParam(required = false) Long bankId,
-            @RequestParam(required = false) String fromCurrencyCode,
-            @RequestParam(required = false) BigDecimal amount,
-            @RequestBody ConversionRequest request
-    ) {
-        try {
-            ConversionResponseDto response = currencyService.convertCurrency(request);
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (UnsupportedOperationException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @PostMapping("/exchangeRate")
-    public ResponseEntity<ExchangeRateDto> createExchangeRate(
-            @RequestParam Long bankId,
-            @RequestParam String fromCurrencyCode,
-            @RequestParam String toCurrencyCode,
-            @RequestParam BigDecimal rate
-    ) {
-        Currency fromCurrency = currencyService.getCurrencyByCode(fromCurrencyCode);
-        if (fromCurrency == null) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        Currency toCurrency = currencyService.getCurrencyByCode(toCurrencyCode);
-        if (toCurrency == null) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        ExchangeRate newExchangeRate =
-                exchangeRateService.createExchangeRate(bankId, fromCurrency, toCurrency, rate);
-        return new ResponseEntity<>(convertToDto(newExchangeRate), HttpStatus.CREATED);
-    }
-
-    private ExchangeRateDto convertToDto(ExchangeRate exchangeRate) {
-        ExchangeRateDto dto = new ExchangeRateDto();
-        dto.setId(exchangeRate.getId());
-        dto.setRate(exchangeRate.getRate());
-        dto.setFromCurrencyCode(exchangeRate.getFromCurrencyCode());
-        dto.setToCurrencyCode(exchangeRate.getToCurrencyCode());
-        return dto;
+            // @Valid включает валидацию для DTO, аннотация Spring @RequestBody указывает, что брать из тела
+            @Valid @org.springframework.web.bind.annotation.RequestBody ConversionRequest request) {
+        ConversionResponseDto response = currencyService.convertCurrency(request); // Сервис кидает исключение, если курс не найден
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

@@ -4,7 +4,6 @@ import com.example.currencyconverter.dto.ConversionResponseDto;
 import com.example.currencyconverter.entity.Currency;
 import com.example.currencyconverter.model.ConversionRequest;
 import com.example.currencyconverter.repository.CurrencyRepository;
-import com.example.currencyconverter.repository.ExchangeRateRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 public class CurrencyService {
     private final CurrencyRepository currencyRepository;
     private final ExchangeRateService exchangeRateService;
-    private final ExchangeRateRepository exchangeRateRepository;
 
     public ConversionResponseDto convertCurrency(ConversionRequest request) {
         BigDecimal exchangeRateValue = exchangeRateService.getExchangeRateValue(

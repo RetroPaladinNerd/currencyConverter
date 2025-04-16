@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody; // Обрати внимание на этот импорт
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,9 +46,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class CurrencyController {
 
     private final CurrencyService currencyService;
-    // ExchangeRateService не используется напрямую в этом контроллере (кроме удаленного /exchangeRate)
-    // private final ExchangeRateService exchangeRateService;
-    //@Qualifier("currencyCache") // Убедись, что бин кэша с таким именем существует
     private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
@@ -64,8 +61,8 @@ public class CurrencyController {
             @RequestParam @NotBlank @Size(min = 3, max = 3) String code,
             @Parameter(description = "Full name of the currency", required = true, example = "Japanese Yen")
             @RequestParam @NotBlank @Size(min = 2, max = 100) String name) {
-        Currency newCurrency = currencyService.createCurrency(code, name); // Сервис проверяет уникальность
-        controllerCache.clear(); // Очищаем кэш валют? Или только при обновлении/удалении?
+        Currency newCurrency = currencyService.createCurrency(code, name);
+        controllerCache.clear();
         return new ResponseEntity<>(newCurrency, HttpStatus.CREATED);
     }
 
@@ -131,8 +128,8 @@ public class CurrencyController {
             @RequestParam @NotBlank @Size(min = 3, max = 3) String newCode,
             @Parameter(description = "New full name for the currency", required = true, example = "Japanese Yen")
             @RequestParam @NotBlank @Size(min = 2, max = 100) String newName) {
-        Currency updatedCurrency = currencyService.updateCurrency(id, newCode, newName); // Сервис проверяет уникальность
-        controllerCache.clear(); // Очищаем кэш валют
+        Currency updatedCurrency = currencyService.updateCurrency(id, newCode, newName);
+        controllerCache.clear();
         return new ResponseEntity<>(updatedCurrency, HttpStatus.OK);
     }
 
@@ -144,21 +141,20 @@ public class CurrencyController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "Currency not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "409", description = "Conflict - Currency is in use and cannot be deleted", // Пример описания конфликта
+        @ApiResponse(responseCode = "409", description = "Conflict - Currency is in use and cannot be deleted",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Void> deleteCurrency(
             @Parameter(description = "ID of the currency to delete", required = true, example = "3")
             @PathVariable @Positive Long id) {
-        currencyService.deleteCurrency(id); // Сервис должен проверять использование и кидать исключение (например, 409 Conflict)
-        controllerCache.clear(); // Очищаем кэш валют
+        currencyService.deleteCurrency(id);
+        controllerCache.clear();
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/convert")
     @Operation(summary = "Convert currency",
             description = "Converts an amount from one currency to another using the exchange rate of a specific bank.")
-    // Описываем тело запроса с помощью @RequestBody аннотации Swagger'а
     @RequestBody(description = "Details for the currency conversion: bank ID, from/to currency codes, and amount.", required = true,
             content = @Content(schema = @Schema(implementation = ConversionRequest.class)))
     @ApiResponses(value = {
@@ -170,9 +166,8 @@ public class CurrencyController {
                             schema = @Schema(implementation = ErrorResponseDto.class))),
     })
     public ResponseEntity<ConversionResponseDto> convertCurrency(
-            // @Valid включает валидацию для DTO, аннотация Spring @RequestBody указывает, что брать из тела
             @Valid @org.springframework.web.bind.annotation.RequestBody ConversionRequest request) {
-        ConversionResponseDto response = currencyService.convertCurrency(request); // Сервис кидает исключение, если курс не найден
+        ConversionResponseDto response = currencyService.convertCurrency(request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

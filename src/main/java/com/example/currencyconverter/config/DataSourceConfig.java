@@ -1,4 +1,4 @@
-package com.example.currencyconverter.config; // Замени на свой пакет
+package com.example.currencyconverter.config;
 
 import javax.sql.DataSource;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -13,7 +13,7 @@ public class DataSourceConfig {
     public DataSource dataSource() {
         DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create();
         dataSourceBuilder.driverClassName("org.postgresql.Driver");
-        dataSourceBuilder.url("jdbc:postgresql://localhost:5432/currencyconverter");
+        dataSourceBuilder.url("jdbc:postgresql:
         dataSourceBuilder.username("sa");
         dataSourceBuilder.password("1234");
         return dataSourceBuilder.build();

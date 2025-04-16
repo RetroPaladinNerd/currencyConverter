@@ -13,13 +13,13 @@ public class InMemoryCache<K, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemoryCache.class);
 
-    private final int maxCacheSize; // Максимальный размер кэша в байтах
+    private final int maxCacheSize;
     private final Map<K, V> cache;
-    private ByteBuffer sizeBuffer; // Для отслеживания размера кэша
+    private ByteBuffer sizeBuffer;
 
-    public InMemoryCache(@Value("${cache.max-size:52428800}") int maxCacheSize) { // 50MB default
+    public InMemoryCache(@Value("${cache.max-size:52428800}") int maxCacheSize) {
         this.maxCacheSize = maxCacheSize;
-        this.cache = new LinkedHashMap<K, V>(16, 0.75f, true) { // LRU cache
+        this.cache = new LinkedHashMap<K, V>(16, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
                 if (sizeBuffer.position() > maxCacheSize) {
@@ -49,8 +49,6 @@ public class InMemoryCache<K, V> {
             logger.warn("Entry size {} exceeds max cache size {}", entrySize, maxCacheSize);
             return;
         }
-
-        // Вытесняем элементы, пока не будет достаточно места
         while (sizeBuffer.position() + entrySize > maxCacheSize) {
             K eldestKey = cache.keySet().iterator().next();
             V eldestValue = cache.get(eldestKey);
@@ -79,9 +77,7 @@ public class InMemoryCache<K, V> {
     }
 
     private int estimateSize(K key, V value) {
-        // Здесь нужна реализация, которая оценивает размер ключа и значения в байтах.
-        // Это очень приблизительная оценка.
-        return key.toString().length() * 2 + value.toString().length() * 2; // Примерная оценка
+        return key.toString().length() * 2 + value.toString().length() * 2;
     }
 
     private void addSize(K key, V value) {

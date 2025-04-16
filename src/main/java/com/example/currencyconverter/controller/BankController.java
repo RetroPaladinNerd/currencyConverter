@@ -48,7 +48,6 @@ public class BankController {
 
     private final BankService bankService;
     private final ExchangeRateService exchangeRateService;
-    //@Qualifier("bankCache")
     private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
@@ -60,9 +59,9 @@ public class BankController {
     public ResponseEntity<BankDto> createBank(
             @Parameter(description = "Name of the new bank (must be unique)", required = true, example = "Central Bank")
             @RequestParam @NotBlank(message = "Bank name cannot be blank") @Size(min = 2, max = 100) String name) {
-        Bank newBank = bankService.createBank(name); // Сервис должен проверять уникальность и кидать исключение
+        Bank newBank = bankService.createBank(name);
         controllerCache.clear();
-        // Гарантированный return
+
         return new ResponseEntity<>(convertToDto(newBank), HttpStatus.CREATED);
     }
 
@@ -80,18 +79,16 @@ public class BankController {
             @Parameter(description = "ID of the bank to retrieve", required = true, example = "1")
             @PathVariable @Positive(message = "Bank ID must be positive") Long id) {
         String cacheKey = "/banks/" + id;
-        @SuppressWarnings("unchecked")
         ResponseEntity<BankDto> cachedResponse = (ResponseEntity<BankDto>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
-            // Гарантированный return в блоке if
+
             return cachedResponse;
         }
-        // Если кэша нет, получаем банк или исключение
+
         Bank bank = bankService.getBank(id).orElseThrow(() -> new CurrencyNotFoundException("Bank not found with id: " + id));
         BankDto bankDto = convertToDto(bank);
         ResponseEntity<BankDto> response = new ResponseEntity<>(bankDto, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
-        // Гарантированный return после блока if
         return response;
     }
 
@@ -107,16 +104,15 @@ public class BankController {
         @SuppressWarnings("unchecked")
         ResponseEntity<List<BankDto>> cachedResponse = (ResponseEntity<List<BankDto>>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
-            // Гарантированный return в блоке if
             return cachedResponse;
         }
         List<Bank> banks = bankService.getAllBanks();
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList()); // Используем collect
+                .collect(Collectors.toList());
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
-        // Гарантированный return после блока if
+
         return response;
     }
 
@@ -135,19 +131,16 @@ public class BankController {
             @Parameter(description = "Optional: Exact exchange rate to BYN for the specified currency code", required = false, example = "3.2500")
             @RequestParam(required = false) @Positive @Digits(integer = 15, fraction = 4) BigDecimal rateToBYN) {
         String cacheKey = "/banks/by-currency?currencyCode=" + currencyCode + "&rateToBYN=" + rateToBYN;
-        @SuppressWarnings("unchecked")
         ResponseEntity<List<BankDto>> cachedResponse = (ResponseEntity<List<BankDto>>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
-            // Гарантированный return в блоке if
             return cachedResponse;
         }
         List<Bank> banks = bankService.findBanksByCurrencyAndRateToBYN(currencyCode, rateToBYN);
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList()); // Используем collect
+                .collect(Collectors.toList());
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
-        // Гарантированный return после блока if
         return response;
     }
 
@@ -164,19 +157,16 @@ public class BankController {
             @Parameter(description = "Part of the bank name to search for", required = true, example = "Bank")
             @RequestParam @NotBlank @Size(min = 1, max = 100) String name) {
         String cacheKey = "/banks/search?name=" + name;
-        @SuppressWarnings("unchecked")
         ResponseEntity<List<BankDto>> cachedResponse = (ResponseEntity<List<BankDto>>) controllerCache.get(cacheKey);
         if (cachedResponse != null) {
-            // Гарантированный return в блоке if
             return cachedResponse;
         }
         List<Bank> banks = bankService.findBanksByNameLikeNative(name);
         List<BankDto> bankDtos = banks.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList()); // Используем collect
+                .collect(Collectors.toList());
         ResponseEntity<List<BankDto>> response = new ResponseEntity<>(bankDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
-        // Гарантированный return после блока if
         return response;
     }
 
@@ -197,7 +187,6 @@ public class BankController {
             @RequestParam @NotBlank @Size(min = 2, max = 100) String newName) {
         Bank updatedBank = bankService.updateBank(id, newName);
         controllerCache.clear();
-        // Гарантированный return
         return new ResponseEntity<>(convertToDto(updatedBank), HttpStatus.OK);
     }
 
@@ -215,22 +204,18 @@ public class BankController {
             @PathVariable @Positive Long id) {
         bankService.deleteBank(id);
         controllerCache.clear();
-        // Гарантированный return
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    // --- Конвертеры DTO (не являются эндпоинтами) ---
     private BankDto convertToDto(Bank bank) {
         BankDto bankDto = new BankDto();
         bankDto.setId(bank.getId());
         bankDto.setName(bank.getName());
-        // Используем метод сервиса для получения курсов конкретного банка
         List<ExchangeRate> exchangeRates = exchangeRateService.getAllExchangeRatesByBankId(bank.getId());
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
                 .map(this::convertToExchangeRateDto)
-                .collect(Collectors.toList()); // Используем collect
+                .collect(Collectors.toList());
         bankDto.setExchangeRates(exchangeRateDtos);
-        // Гарантированный return
         return bankDto;
     }
 
@@ -240,7 +225,6 @@ public class BankController {
         exchangeRateDto.setRate(exchangeRate.getRate());
         exchangeRateDto.setFromCurrencyCode(exchangeRate.getFromCurrencyCode());
         exchangeRateDto.setToCurrencyCode(exchangeRate.getToCurrencyCode());
-        // Гарантированный return
         return exchangeRateDto;
     }
 }

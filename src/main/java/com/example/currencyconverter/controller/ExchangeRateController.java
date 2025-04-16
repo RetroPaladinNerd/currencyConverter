@@ -1,7 +1,7 @@
 package com.example.currencyconverter.controller;
 
 import com.example.currencyconverter.dto.ErrorResponseDto;
-import com.example.currencyconverter.dto.ExchangeRateCreateRequestDto; // Добавлен импорт
+import com.example.currencyconverter.dto.ExchangeRateCreateRequestDto;
 import com.example.currencyconverter.dto.ExchangeRateDto;
 import com.example.currencyconverter.entity.ExchangeRate;
 import com.example.currencyconverter.exception.CurrencyNotFoundException;
@@ -12,14 +12,13 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody; // Импорт для @RequestBody Swagger
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid; // Добавлен импорт
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty; // Добавлен импорт
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -49,8 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
-    //@Qualifier("exchangeRateCache")
-    private final InMemoryCache<String, Object> controllerCache; // Общий кеш для контроллера
+    private final InMemoryCache<String, Object> controllerCache;
 
     @PostMapping
     @Operation(summary = "Create an exchange rate", description = "Creates a new exchange rate for a specific bank between two currencies. The combination of bank, from_currency, and to_currency must be unique.")
@@ -72,7 +70,7 @@ public class ExchangeRateController {
             @Parameter(description = "The exchange rate (how many target units for one source unit)", required = true, example = "0.9250")
             @RequestParam @NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal rate) {
         ExchangeRate newExchangeRate = exchangeRateService.createExchangeRateWithCodes(bankId, fromCurrencyCode, toCurrencyCode, rate);
-        controllerCache.clear(); // Очищаем кеш контроллера при изменении данных
+        controllerCache.clear();
         return new ResponseEntity<>(convertToDto(newExchangeRate), HttpStatus.CREATED);
     }
 
@@ -88,20 +86,18 @@ public class ExchangeRateController {
         @ApiResponse(responseCode = "400", description = "Invalid input in the request body (validation error on list or individual items, non-existent bank/currency, or duplicate rate detected)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "Bank or Currency not found during processing (caught by service, results in 400 for the batch)",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))) // Технически, сервис кинет исключение, которое обработчик перехватит как 400 или другое
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<List<ExchangeRateDto>> createExchangeRatesBulk(
-            //@Parameter(description = "List of exchange rate details to create. The list cannot be empty.", required = true)
-            //@RequestBody @NotEmpty(message = "Request body cannot be an empty list.") // Проверяем, что сам список не пуст
             @org.springframework.web.bind.annotation.RequestBody
-            List<@Valid ExchangeRateCreateRequestDto> requests // @Valid включает валидацию для каждого элемента списка
+            List<@Valid ExchangeRateCreateRequestDto> requests
     ) {
         List<ExchangeRate> createdRates = exchangeRateService.createExchangeRatesBulk(requests);
         List<ExchangeRateDto> createdRateDtos = createdRates.stream()
-                .map(this::convertToDto) // Используем лямбда-выражение (method reference)
-                .collect(Collectors.toList()); // Собираем результат с помощью Stream API
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
 
-        controllerCache.clear(); // Очищаем кеш контроллера после успешного bulk-создания
+        controllerCache.clear();
         return new ResponseEntity<>(createdRateDtos, HttpStatus.CREATED);
     }
 
@@ -148,8 +144,8 @@ public class ExchangeRateController {
         }
         List<ExchangeRate> exchangeRates = exchangeRateService.getAllExchangeRates();
         List<ExchangeRateDto> exchangeRateDtos = exchangeRates.stream()
-                .map(this::convertToDto) // Лямбда (method reference)
-                .collect(Collectors.toList()); // Stream API
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
         ResponseEntity<List<ExchangeRateDto>> response = new ResponseEntity<>(exchangeRateDtos, HttpStatus.OK);
         controllerCache.put(cacheKey, response);
         return response;
@@ -175,7 +171,7 @@ public class ExchangeRateController {
             @Parameter(description = "New exchange rate", required = true, example = "1.3550")
             @RequestParam @NotNull @Positive @Digits(integer = 15, fraction = 4) BigDecimal newRate) {
         ExchangeRate updatedExchangeRate = exchangeRateService.updateExchangeRate(id, fromCurrencyCode, toCurrencyCode, newRate);
-        controllerCache.clear(); // Очищаем кеш контроллера
+        controllerCache.clear();
         return new ResponseEntity<>(convertToDto(updatedExchangeRate), HttpStatus.OK);
     }
 
@@ -193,10 +189,9 @@ public class ExchangeRateController {
             @PathVariable @Positive Long id) {
         boolean deleted = exchangeRateService.deleteExchangeRate(id);
         if (!deleted) {
-            // Если сервис вернул false, значит курс не найден
             throw new CurrencyNotFoundException("Exchange rate not found with id: " + id);
         }
-        controllerCache.clear(); // Очищаем кеш контроллера
+        controllerCache.clear();
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
@@ -221,10 +216,8 @@ public class ExchangeRateController {
         if (cachedResponse != null) {
             return cachedResponse;
         }
-        // Сервис теперь сам кидает исключение при невалидных кодах
         ExchangeRate exchangeRate = exchangeRateService.getMinRate(fromCurrencyCode, toCurrencyCode);
         if (exchangeRate == null) {
-            // Если коды валидны, но курс не найден
             throw new CurrencyNotFoundException(String.format("No exchange rates found for conversion from %s to %s", fromCurrencyCode, toCurrencyCode));
         }
         ExchangeRateDto dto = convertToDto(exchangeRate);
@@ -232,8 +225,6 @@ public class ExchangeRateController {
         controllerCache.put(cacheKey, response);
         return response;
     }
-
-    // --- Конвертер DTO ---
     private ExchangeRateDto convertToDto(ExchangeRate exchangeRate) {
         if (exchangeRate == null) {
             return null;
@@ -243,8 +234,6 @@ public class ExchangeRateController {
         dto.setRate(exchangeRate.getRate());
         dto.setFromCurrencyCode(exchangeRate.getFromCurrencyCode());
         dto.setToCurrencyCode(exchangeRate.getToCurrencyCode());
-        // Примечание: Bank ID не включаем в ExchangeRateDto по умолчанию,
-        // но его можно добавить при необходимости.
         return dto;
     }
 }

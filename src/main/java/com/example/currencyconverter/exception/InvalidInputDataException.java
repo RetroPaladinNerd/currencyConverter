@@ -8,10 +8,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Getter
-@ResponseStatus(HttpStatus.BAD_REQUEST) // Устанавливаем статус по умолчанию
+@ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidInputDataException extends RuntimeException {
 
-    private final Map<String, List<String>> errors; // Поле для хранения деталей ошибок
+    private final Map<String, List<String>> errors;
 
     public InvalidInputDataException(String message) {
         super(message);
@@ -24,7 +24,7 @@ public class InvalidInputDataException extends RuntimeException {
     }
 
     public InvalidInputDataException(Map<String, List<String>> errors) {
-        super("Validation failed"); // Общее сообщение
+        super("Validation failed");
         this.errors = errors;
     }
 }

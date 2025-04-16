@@ -1,6 +1,6 @@
 package com.example.currencyconverter.controller;
 
-import com.example.currencyconverter.dto.ErrorResponseDto; // Для описания ошибок
+import com.example.currencyconverter.dto.ErrorResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,7 +40,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/admin/logs")
 @RequiredArgsConstructor
 @Slf4j
-@Validated // <-- Добавляем для валидации @DateTimeFormat
+@Validated
 @Tag(name = "Log Management", description = "Endpoints for accessing application logs (Administrative).")
 public class LogController {
 
@@ -53,10 +53,10 @@ public class LogController {
     @Operation(summary = "Download logs by date", description = "Downloads a log file containing entries for the specified date.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Log file ready for download",
-                    content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE)), // Тип контента - текст
+                    content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE)),
         @ApiResponse(responseCode = "400", description = "Invalid date format supplied (must be YYYY-MM-DD)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Log file not found or no entries for the specified date", // Объединяем 404
+        @ApiResponse(responseCode = "404", description = "Log file not found or no entries for the specified date",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
         @ApiResponse(responseCode = "500", description = "Internal server error reading log file",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
@@ -81,7 +81,6 @@ public class LogController {
 
             if (filteredLogContent.isEmpty()) {
                 log.warn("No log entries found for date: {}", dateString);
-                // Решаем, возвращать пустой файл (200) или ошибку (404)
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No log entries found for date: " + dateString);
             }
 
@@ -91,7 +90,7 @@ public class LogController {
 
             return ResponseEntity.ok()
                     .headers(headers)
-                    .contentType(MediaType.TEXT_PLAIN) // Указываем тип контента
+                    .contentType(MediaType.TEXT_PLAIN)
                     .body(resource);
 
         } catch (IOException e) {

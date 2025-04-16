@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 public class ErrorResponseDto {
     private LocalDateTime timestamp;
     private int status;
-    private String error; // Краткое описание статуса (e.g., "Bad Request")
-    private String message; // Общее сообщение об ошибке
-    private String path; // Путь запроса
-    private Map<String, List<String>> details; // Детали ошибок валидации (поле -> список ошибок)
+    private String error;
+    private String message;
+    private String path;
+    private Map<String, List<String>> details;
 }

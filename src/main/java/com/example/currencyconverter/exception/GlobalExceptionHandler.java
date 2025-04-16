@@ -22,26 +22,22 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 
 @ControllerAdvice
-@Slf4j // Добавляем логгер
+@Slf4j
 public class GlobalExceptionHandler {
-
-    // Обработка кастомного исключения InvalidInputDataException
     @ExceptionHandler(InvalidInputDataException.class)
     public ResponseEntity<ErrorResponseDto> handleInvalidInputDataException(
             InvalidInputDataException ex, HttpServletRequest request) {
-        log.warn("Validation Error: {}", ex.getMessage(), ex); // Логируем ошибку
+        log.warn("Validation Error: {}", ex.getMessage(), ex);
         ErrorResponseDto errorResponse = new ErrorResponseDto(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 ex.getMessage(),
                 request.getRequestURI(),
-                ex.getErrors() // Используем детали из исключения
+                ex.getErrors()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработка ошибок валидации @Valid (@RequestBody)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -62,14 +58,11 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработка ошибок валидации параметров (@RequestParam, @PathVariable с аннотациями)
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponseDto> handleConstraintViolationException(
             ConstraintViolationException ex, HttpServletRequest request) {
         Map<String, List<String>> details = new HashMap<>();
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
-            // Пытаемся извлечь имя параметра
             String propertyPath = violation.getPropertyPath().toString();
             String paramName = propertyPath.contains(".") ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1) : propertyPath;
             String message = violation.getMessage();
@@ -86,8 +79,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработка отсутствующих обязательных параметров запроса (@RequestParam)
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponseDto> handleMissingServletRequestParameter(
             MissingServletRequestParameterException ex, HttpServletRequest request) {
@@ -104,8 +95,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработка ошибок несоответствия типа параметра (@RequestParam, @PathVariable)
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponseDto> handleMethodArgumentTypeMismatch(
             MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
@@ -124,8 +113,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработка общих IllegalArgumentException (часто используется для ручной валидации)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(
             IllegalArgumentException ex, HttpServletRequest request) {
@@ -136,18 +123,16 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Invalid argument provided", // Более общее сообщение
+                "Invalid argument provided",
                 request.getRequestURI(),
                 details
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
-
-    // Обработчик для других непредвиденных исключений (можно добавить для 500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        log.error("Unexpected Error: {}", ex.getMessage(), ex); // Логируем как ERROR
+        log.error("Unexpected Error: {}", ex.getMessage(), ex);
         Map<String, List<String>> details = new HashMap<>();
         details.computeIfAbsent("error", k -> new ArrayList<>()).add("An internal server error occurred.");
         ErrorResponseDto errorResponse = new ErrorResponseDto(

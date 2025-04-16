@@ -16,7 +16,7 @@ public class OpenApiConfig {
                         .title("Currency Converter API")
                         .version("1.0.0")
                         .description("API for managing banks, currencies, exchange rates, and performing currency conversions.")
-                        .termsOfService("http://example.com/terms/") // Замени на реальную ссылку или удали
-                        .license(new License().name("Apache 2.0").url("http://springdoc.org"))); // Замени или удали
+                        .termsOfService("http:
+                        .license(new License().name("Apache 2.0").url("http:
     }
 }

@@ -13,7 +13,7 @@ public class DataSourceConfig {
     public DataSource dataSource() {
         DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create();
         dataSourceBuilder.driverClassName("org.postgresql.Driver");
-        dataSourceBuilder.url("jdbc:postgresql:
+        dataSourceBuilder.url("jdbc:postgresql://localhost:5432/currencyconverter");
         dataSourceBuilder.username("sa");
         dataSourceBuilder.password("1234");
         return dataSourceBuilder.build();

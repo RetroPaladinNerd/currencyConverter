@@ -37,13 +37,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 @RestController
 @RequestMapping("/banks")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Bank Management", description = "Endpoints for managing banks and their exchange rates.")
+@CrossOrigin(origins = "http://localhost:3000") // Разрешаем запросы с http://localhost:3000
 public class BankController {
 
     private final BankService bankService;
@@ -53,8 +54,8 @@ public class BankController {
     @PostMapping
     @Operation(summary = "Create a new bank", description = "Creates a new bank record. The name must be unique.")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Bank created successfully",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BankDto.class))), @ApiResponse(responseCode = "400", description = "Invalid input (e.g., blank name, name too short/long, or name already exists)",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BankDto.class))), @ApiResponse(responseCode = "400", description = "Invalid input (e.g., blank name, name too short/long, or name already exists)",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<BankDto> createBank(
             @Parameter(description = "Name of the new bank (must be unique)", required = true, example = "Central Bank")
@@ -68,11 +69,11 @@ public class BankController {
     @GetMapping("/{id}")
     @Operation(summary = "Get bank by ID", description = "Retrieves details of a specific bank, including its exchange rates.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Bank found",
+            @ApiResponse(responseCode = "200", description = "Bank found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BankDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied (e.g., not positive)",
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied (e.g., not positive)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Bank not found",
+            @ApiResponse(responseCode = "404", description = "Bank not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<BankDto> getBank(
@@ -95,7 +96,7 @@ public class BankController {
     @GetMapping
     @Operation(summary = "Get all banks", description = "Retrieves a list of all banks with their exchange rates.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = BankDto.class))))
     })
@@ -119,10 +120,10 @@ public class BankController {
     @GetMapping("/by-currency")
     @Operation(summary = "Find banks by currency code", description = "Finds banks that have exchange rates involving the specified currency code. Optionally filters by a specific rate to BYN.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Banks found",
+            @ApiResponse(responseCode = "200", description = "Banks found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = BankDto.class)))),
-        @ApiResponse(responseCode = "400", description = "Invalid currency code or rate format",
+            @ApiResponse(responseCode = "400", description = "Invalid currency code or rate format",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<List<BankDto>> getBanksByCurrency(
@@ -147,10 +148,10 @@ public class BankController {
     @GetMapping("/search")
     @Operation(summary = "Search banks by name", description = "Searches for banks whose name contains the specified query string (case-insensitive).")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Search results",
+            @ApiResponse(responseCode = "200", description = "Search results",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = BankDto.class)))),
-        @ApiResponse(responseCode = "400", description = "Invalid search query (e.g., blank)",
+            @ApiResponse(responseCode = "400", description = "Invalid search query (e.g., blank)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<List<BankDto>> searchBanksByName(
@@ -173,11 +174,11 @@ public class BankController {
     @PutMapping("/{id}")
     @Operation(summary = "Update bank name", description = "Updates the name of an existing bank. The new name must be unique.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Bank updated successfully",
+            @ApiResponse(responseCode = "200", description = "Bank updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BankDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid ID or new name supplied (validation error or name already exists)",
+            @ApiResponse(responseCode = "400", description = "Invalid ID or new name supplied (validation error or name already exists)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Bank not found",
+            @ApiResponse(responseCode = "404", description = "Bank not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<BankDto> updateBank(
@@ -193,10 +194,10 @@ public class BankController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a bank", description = "Deletes a bank and all its associated exchange rates.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Bank deleted successfully", content = @Content),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+            @ApiResponse(responseCode = "204", description = "Bank deleted successfully", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Bank not found",
+            @ApiResponse(responseCode = "404", description = "Bank not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Void> deleteBank(
@@ -225,6 +226,7 @@ public class BankController {
         exchangeRateDto.setRate(exchangeRate.getRate());
         exchangeRateDto.setFromCurrencyCode(exchangeRate.getFromCurrencyCode());
         exchangeRateDto.setToCurrencyCode(exchangeRate.getToCurrencyCode());
+        exchangeRateDto.setBankId(exchangeRate.getBank().getId());
         return exchangeRateDto;
     }
 }

@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Maven target directory
+target/
+
+# Gradle build directory
+build/
+.gradle/
+
+# IDE specific files
+.idea/
+*.iml
+.vscode/
+*.project
+.settings/
+.classpath
+
+# Log files
+*.log
+
+# Other temp files
+*~

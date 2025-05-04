@@ -1,25 +1,33 @@
 package com.example.currencyconverter.visit;
 
-import org.springframework.stereotype.Service;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 @Service
 public class VisitCounterService {
 
-    private final AtomicLong visitCount = new AtomicLong(0);
+    private static final Logger log = LoggerFactory.getLogger(VisitCounterService.class);
 
+    private final ConcurrentHashMap<String, AtomicLong> visitCounts = new ConcurrentHashMap<>();
 
-    public void increment() {
-        visitCount.incrementAndGet();
+    public void incrementVisit(String requestUri) {
+        if (requestUri == null) {
+            requestUri = "UNKNOWN_URI";
+        }
+        visitCounts.computeIfAbsent(requestUri, k -> {
+            log.debug("Creating new counter for URI: {}", k);
+            return new AtomicLong(0);
+        }).incrementAndGet();
+        log.trace("Incremented count for URI: {}", requestUri);
     }
 
-
-    public long getCount() {
-        return visitCount.get();
+    public long getTotalVisitCount() {
+        return visitCounts.values().stream()
+                .mapToLong(AtomicLong::get)
+                .sum();
     }
 
-
-    public void reset() {
-        visitCount.set(0);
-    }
 }

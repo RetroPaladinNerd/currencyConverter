@@ -20,12 +20,13 @@ public class VisitController {
 
     private final VisitCounterService visitCounterService;
 
-    // Эндпоинт для получения текущего счетчика
-    @GetMapping("/count")
-    @Operation(summary = "Get visit count", description = "Retrieves the total number of tracked visits.")
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully",
+    @GetMapping("/count/total")
+    @Operation(summary = "Get total visit count", description = "Retrieves the total number of tracked visits across all URIs.")
+    @ApiResponse(responseCode = "200", description = "Total count retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(type = "integer", format = "int64")))
-    public ResponseEntity<Long> getVisitCount() {
-        return ResponseEntity.ok(visitCounterService.getCount());
+    public ResponseEntity<Long> getTotalVisitCount() {
+
+        return ResponseEntity.ok(visitCounterService.getTotalVisitCount());
     }
+
 }

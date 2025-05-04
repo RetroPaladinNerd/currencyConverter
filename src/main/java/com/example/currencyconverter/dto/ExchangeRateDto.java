@@ -13,4 +13,5 @@ public class ExchangeRateDto {
     private BigDecimal rate;
     private String fromCurrencyCode;
     private String toCurrencyCode;
+    private Long bankId; // <-- Добавьте это поле
 }

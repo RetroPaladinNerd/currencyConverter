@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin; // Импорт аннотации CORS
 
 
 @RestController
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Exchange Rate Management", description = "Endpoints for managing exchange rates between currencies for specific banks.")
+@CrossOrigin(origins = "http://localhost:3000") // Разрешаем запросы с http://localhost:3000
 public class ExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
@@ -53,11 +55,11 @@ public class ExchangeRateController {
     @PostMapping
     @Operation(summary = "Create an exchange rate", description = "Creates a new exchange rate for a specific bank between two currencies. The combination of bank, from_currency, and to_currency must be unique.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Exchange rate created successfully",
+            @ApiResponse(responseCode = "201", description = "Exchange rate created successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ExchangeRateDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input (validation error, non-existent bank/currency, or duplicate rate exists)",
+            @ApiResponse(responseCode = "400", description = "Invalid input (validation error, non-existent bank/currency, or duplicate rate exists)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Bank or Currency not found (caught by service)",
+            @ApiResponse(responseCode = "404", description = "Bank or Currency not found (caught by service)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<ExchangeRateDto> createExchangeRate(
@@ -80,12 +82,12 @@ public class ExchangeRateController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     array = @ArraySchema(schema = @Schema(implementation = ExchangeRateCreateRequestDto.class))))
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Exchange rates created successfully",
+            @ApiResponse(responseCode = "201", description = "Exchange rates created successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = ExchangeRateDto.class)))),
-        @ApiResponse(responseCode = "400", description = "Invalid input in the request body (validation error on list or individual items, non-existent bank/currency, or duplicate rate detected)",
+            @ApiResponse(responseCode = "400", description = "Invalid input in the request body (validation error on list or individual items, non-existent bank/currency, or duplicate rate detected)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Bank or Currency not found during processing (caught by service, results in 400 for the batch)",
+            @ApiResponse(responseCode = "404", description = "Bank or Currency not found during processing (caught by service, results in 400 for the batch)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<List<ExchangeRateDto>> createExchangeRatesBulk(
@@ -101,15 +103,14 @@ public class ExchangeRateController {
         return new ResponseEntity<>(createdRateDtos, HttpStatus.CREATED);
     }
 
-
     @GetMapping("/{id}")
     @Operation(summary = "Get exchange rate by ID", description = "Retrieves details of a specific exchange rate by its unique ID.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Exchange rate found",
+            @ApiResponse(responseCode = "200", description = "Exchange rate found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ExchangeRateDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Exchange rate not found",
+            @ApiResponse(responseCode = "404", description = "Exchange rate not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<ExchangeRateDto> getExchangeRate(
@@ -131,7 +132,7 @@ public class ExchangeRateController {
     @GetMapping
     @Operation(summary = "Get all exchange rates", description = "Retrieves a list of all exchange rates across all banks.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = ExchangeRateDto.class))))
     })
@@ -154,11 +155,11 @@ public class ExchangeRateController {
     @PutMapping("/{id}")
     @Operation(summary = "Update an exchange rate", description = "Updates the currency codes and/or rate for an existing exchange rate.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Exchange rate updated successfully",
+            @ApiResponse(responseCode = "200", description = "Exchange rate updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ExchangeRateDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input (validation error, non-existent currency, potential duplicate)",
+            @ApiResponse(responseCode = "400", description = "Invalid input (validation error, non-existent currency, potential duplicate)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Exchange rate not found or Currency not found (caught by service)",
+            @ApiResponse(responseCode = "404", description = "Exchange rate not found or Currency not found (caught by service)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<ExchangeRateDto> updateExchangeRate(
@@ -178,10 +179,10 @@ public class ExchangeRateController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete an exchange rate", description = "Deletes a specific exchange rate by its ID.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Exchange rate deleted successfully", content = @Content),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+            @ApiResponse(responseCode = "204", description = "Exchange rate deleted successfully", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Exchange rate not found",
+            @ApiResponse(responseCode = "404", description = "Exchange rate not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Void> deleteExchangeRate(
@@ -198,11 +199,11 @@ public class ExchangeRateController {
     @GetMapping("/min-rate")
     @Operation(summary = "Get minimum exchange rate", description = "Finds the bank offering the minimum exchange rate for a given currency pair.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Minimum rate found",
+            @ApiResponse(responseCode = "200", description = "Minimum rate found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ExchangeRateDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid currency code supplied",
+            @ApiResponse(responseCode = "400", description = "Invalid currency code supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "No exchange rate found for this currency pair or invalid currency code (caught by service)",
+            @ApiResponse(responseCode = "404", description = "No exchange rate found for this currency pair or invalid currency code (caught by service)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<ExchangeRateDto> getMinRate(
@@ -234,6 +235,7 @@ public class ExchangeRateController {
         dto.setRate(exchangeRate.getRate());
         dto.setFromCurrencyCode(exchangeRate.getFromCurrencyCode());
         dto.setToCurrencyCode(exchangeRate.getToCurrencyCode());
+        dto.setBankId(exchangeRate.getBank().getId());
         return dto;
     }
 }

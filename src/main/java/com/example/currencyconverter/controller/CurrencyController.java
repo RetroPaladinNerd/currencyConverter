@@ -6,7 +6,6 @@ import com.example.currencyconverter.entity.Currency;
 import com.example.currencyconverter.exception.CurrencyNotFoundException;
 import com.example.currencyconverter.model.ConversionRequest;
 import com.example.currencyconverter.service.CurrencyService;
-import com.example.currencyconverter.service.ExchangeRateService;
 import com.example.currencyconverter.utils.InMemoryCache;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,7 +22,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +34,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin; // Импорт аннотации CORS
 
 
 @RestController
@@ -43,6 +42,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Currency Operations", description = "Endpoints for managing currencies and performing conversions")
+@CrossOrigin(origins = "http://localhost:3000") // Разрешаем запросы с http://localhost:3000
 public class CurrencyController {
 
     private final CurrencyService currencyService;
@@ -51,9 +51,9 @@ public class CurrencyController {
     @PostMapping
     @Operation(summary = "Create a new currency", description = "Creates a new currency. The 3-letter code must be unique.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Currency created successfully",
+            @ApiResponse(responseCode = "201", description = "Currency created successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input (validation error or code already exists)",
+            @ApiResponse(responseCode = "400", description = "Invalid input (validation error or code already exists)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Currency> createCurrency(
@@ -69,11 +69,11 @@ public class CurrencyController {
     @GetMapping("/{id}")
     @Operation(summary = "Get currency by ID", description = "Retrieves details of a specific currency by its unique ID.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Currency found",
+            @ApiResponse(responseCode = "200", description = "Currency found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Currency not found",
+            @ApiResponse(responseCode = "404", description = "Currency not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Currency> getCurrency(
@@ -94,7 +94,7 @@ public class CurrencyController {
     @GetMapping
     @Operation(summary = "Get all currencies", description = "Retrieves a list of all available currencies.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = Currency.class))))
     })
@@ -114,11 +114,11 @@ public class CurrencyController {
     @PutMapping("/{id}")
     @Operation(summary = "Update currency", description = "Updates the code and/or name of an existing currency. The new code must be unique.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Currency updated successfully",
+            @ApiResponse(responseCode = "200", description = "Currency updated successfully",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Currency.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input (validation error or new code already exists)",
+            @ApiResponse(responseCode = "400", description = "Invalid input (validation error or new code already exists)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Currency not found",
+            @ApiResponse(responseCode = "404", description = "Currency not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Currency> updateCurrency(
@@ -136,12 +136,12 @@ public class CurrencyController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete currency", description = "Deletes a currency by its ID. Fails if the currency is used in existing exchange rates.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Currency deleted successfully", content = @Content),
-        @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
+            @ApiResponse(responseCode = "204", description = "Currency deleted successfully", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid ID supplied",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "404", description = "Currency not found",
+            @ApiResponse(responseCode = "404", description = "Currency not found",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class))),
-        @ApiResponse(responseCode = "409", description = "Conflict - Currency is in use and cannot be deleted",
+            @ApiResponse(responseCode = "409", description = "Conflict - Currency is in use and cannot be deleted",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public ResponseEntity<Void> deleteCurrency(
@@ -158,10 +158,10 @@ public class CurrencyController {
     @RequestBody(description = "Details for the currency conversion: bank ID, from/to currency codes, and amount.", required = true,
             content = @Content(schema = @Schema(implementation = ConversionRequest.class)))
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Conversion successful",
+            @ApiResponse(responseCode = "200", description = "Conversion successful",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = ConversionResponseDto.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input (validation error in request body, or required exchange rate not found)",
+            @ApiResponse(responseCode = "400", description = "Invalid input (validation error in request body, or required exchange rate not found)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = ErrorResponseDto.class))),
     })

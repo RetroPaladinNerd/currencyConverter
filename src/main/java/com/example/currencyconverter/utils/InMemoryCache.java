@@ -17,7 +17,7 @@ public class InMemoryCache<K, V> {
     private final Map<K, V> cache;
     private ByteBuffer sizeBuffer;
 
-    public InMemoryCache(@Value("${cache.max-size:52428800}") int maxCacheSize) {
+    public InMemoryCache(@Value("${cache.max-size:5242}") int maxCacheSize) {
         this.maxCacheSize = maxCacheSize;
         this.cache = new LinkedHashMap<K, V>(16, 0.75f, true) {
             @Override

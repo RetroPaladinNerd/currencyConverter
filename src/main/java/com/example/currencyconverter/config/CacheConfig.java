@@ -12,7 +12,7 @@ public class CacheConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheConfig.class);
 
-    @Value("${cache.max-size:52428800}")
+    @Value("${cache.max-size:5242}")
     private int cacheSize;
 
     @Bean

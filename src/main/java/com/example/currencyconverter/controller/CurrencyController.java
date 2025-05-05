@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.CrossOrigin; // Импорт ан
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Currency Operations", description = "Endpoints for managing currencies and performing conversions")
-@CrossOrigin(origins = "http://localhost:3000") // Разрешаем запросы с http://localhost:3000
+@CrossOrigin(origins = "https://currency-converter-ui-wccs.onrender.com") // Разрешаем запросы с http://localhost:3000
 public class CurrencyController {
 
     private final CurrencyService currencyService;

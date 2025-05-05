@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Bank Management", description = "Endpoints for managing banks and their exchange rates.")
-@CrossOrigin(origins = "http://localhost:3000") // Разрешаем запросы с http://localhost:3000
+@CrossOrigin(origins = "https://currency-converter-ui-wccs.onrender.com") // Разрешаем запросы с http://localhost:3000
 public class BankController {
 
     private final BankService bankService;

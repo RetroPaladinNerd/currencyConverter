@@ -13,5 +13,4 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 EXPOSE 8088
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-CMD ["java", "-Xms128m", "-Xmx256m", "-Dserver.port=${PORT}", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xms256m", "-Xmx384m", "-jar", "app.jar"]

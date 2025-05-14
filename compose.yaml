@@ -1,14 +1,13 @@
-version: '3'
+version: '3.8'
 
 services:
   postgres:
     image: 'postgres:latest'
     container_name: 'java-postgres'
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
-      POSTGRES_USER: "sa"
-      POSTGRES_PASSWORD: "1234"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
-      POSTGRES_DB: "currencyconverter"
-
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
